@@ -153,7 +153,7 @@ def protein_logo(positions):
       tmp = tmp + seq[1][i]
     ABCG8.append(tmp)
 
-  fig = plt.figure(figsize=[0.5*len(ABCG1[0]), 9])
+  fig = plt.figure(figsize=[0.5*len(ABCG1[0]), 5])
   
   ax = plt.subplot2grid((5, 1), (0,0))
   ABCG1_logo = lm.Logo(lm.alignment_to_matrix(ABCG1), ax = ax, color_scheme='black')
@@ -173,11 +173,12 @@ def protein_logo(positions):
   ABCG8_logo = lm.Logo(lm.alignment_to_matrix(ABCG8), ax = ax4, color_scheme='black')
   ax4.set_xticks(range(len(positions)))
   
-  plt.xticks(rotation = 70, ha = 'right')
+  plt.xticks(rotation = 45, ha = 'right')
   this_conservation_pattern = []
   for i in positions:
     this_conservation_pattern.append(conservation_pattern[i])
   ax4.set_xticklabels(this_conservation_pattern)
+  ax4.tick_params(labelsize = 8)
 
   ax.set_yticks([])
   ax1.set_yticks([])
@@ -259,9 +260,20 @@ for pos in alignment_protein_conservation:
   else:
     conservation_pattern.append(pos)
 
-logo_range = st.slider(
-    'Select a range of alignment columns',
-    0, len(MAFFT_alignment[0][1]), (890,910)
+logo_pos_string = st.text_input(
+    'Which columns do you want a logo of? Separate values with commas. For ranges, use a hyphen',
+    '890, 891-905'
 )
 
-st.write(protein_logo(range(logo_range[0], logo_range[1])))
+@st.cache
+def position_extract(pos_string):
+    out = []
+    for pos in pos_string.split(','):
+        if '-' in pos:
+            rangevals = pos.split('-')
+            out = out + list(range(int(rangevals[0]), int(rangevals[1])+1))
+        else:
+            out.append(int(pos))
+    return out
+
+st.write(protein_logo(position_extract(logo_pos_string)))
