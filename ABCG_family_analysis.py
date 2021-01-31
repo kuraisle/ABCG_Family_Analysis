@@ -110,6 +110,7 @@ ABCG5_sequences = MAFFT_alignment[103:-35]
 ABCG8_sequences = MAFFT_alignment[-35:]
 
 alignment_protein_conservation = group_conservation_alignment([('ABCG1', ABCG1_sequences), ('ABCG2', ABCG2_sequences), ('ABCG4', ABCG4_sequences), ('ABCG5', ABCG5_sequences), ('ABCG8', ABCG8_sequences)])
+functionally_divergent = [x for x in alignment_protein_conservation if x[1] not in ['Totally Conserved', 'Gap', 'Not conserved']]
 
 def protein_logo(positions):
   """Draws a sequence logo of the positions requested showing differences between ABCG family members
@@ -260,10 +261,13 @@ for pos in alignment_protein_conservation:
   else:
     conservation_pattern.append(pos)
 
-logo_pos_string = st.text_input(
-    'Which columns do you want a logo of? Separate values with commas. For ranges, use a hyphen',
-    '890, 891-905'
-)
+human_seq_map = {
+    'Human ABCG1': remove_alignment_gaps(MAFFT_alignment[19][1]),
+    'Human ABCG4': remove_alignment_gaps(MAFFT_alignment[35][1]),
+    'Human ABCG2': remove_alignment_gaps(MAFFT_alignment[90][1]),
+    'Human ABCG5': remove_alignment_gaps(MAFFT_alignment[103][1]),
+    'Human ABCG8': remove_alignment_gaps(MAFFT_alignment[139][1])
+}
 
 @st.cache
 def position_extract(pos_string):
@@ -276,4 +280,114 @@ def position_extract(pos_string):
             out.append(int(pos))
     return out
 
-st.write(protein_logo(position_extract(logo_pos_string)))
+seq_map_df = pd.DataFrame(
+    human_seq_map['Human ABCG1'], columns = ['ABCG1', 'Alignment']
+).merge(
+    pd.DataFrame(
+        human_seq_map['Human ABCG4'], columns = ['ABCG4', 'Alignment']
+    ),
+    on = 'Alignment'
+).merge(
+    pd.DataFrame(
+        human_seq_map['Human ABCG2'], columns = ['ABCG2', 'Alignment']
+    ),
+    on = 'Alignment'
+).merge(
+    pd.DataFrame(
+        human_seq_map['Human ABCG5'], columns = ['ABCG5', 'Alignment']
+    ),
+    on = 'Alignment'
+).merge(
+    pd.DataFrame(
+        human_seq_map['Human ABCG8'], columns = ['ABCG8', 'Alignment']
+    ),
+    on = 'Alignment'
+)
+
+# Display components
+
+## Sidebar
+search_or_pattern = st.sidebar.selectbox(
+    'Do you want to search by position or explore conservation patterns?',
+    ['Search by position', 'Explore conservation patterns']
+)
+
+if search_or_pattern == 'Search by position':
+    relative_position = st.sidebar.selectbox(
+        'What would you like your positions relative to?',
+        ['Alignment', 'Human ABCG1', 'Human ABCG4', 'Human ABCG2', 'Human ABCG5', 'Human ABCG8']
+    )
+else:
+    ABCG1_group = st.sidebar.selectbox(
+        'Which group for ABCG1?',
+        ['Group 1', 'Group 2', 'Group 3', 'Group 4', 'Group 5']
+    )
+    ABCG4_group = st.sidebar.selectbox(
+        'Which group for ABCG4?',
+        ['Group 1', 'Group 2', 'Group 3', 'Group 4', 'Group 5']
+    )
+    ABCG2_group = st.sidebar.selectbox(
+        'Which group for ABCG2?',
+        ['Group 1', 'Group 2', 'Group 3', 'Group 4', 'Group 5']
+    )
+    ABCG5_group = st.sidebar.selectbox(
+        'Which group for ABCG5?',
+        ['Group 1', 'Group 2', 'Group 3', 'Group 4', 'Group 5']
+    )
+    ABCG8_group = st.sidebar.selectbox(
+        'Which group for ABCG8?',
+        ['Group 1', 'Group 2', 'Group 3', 'Group 4', 'Group 5']
+    )
+
+
+
+## Main body
+if search_or_pattern == 'Search by position':
+    if relative_position == 'Alignment':
+        logo_pos_string = st.text_input(
+            'Which columns do you want a logo of? Separate values with commas. For ranges, use a hyphen',
+            '890, 891-905'
+        )
+        position_list = position_extract(logo_pos_string)
+    else:
+        logo_pos_str = st.text_input(
+            f'Which {relative_position} positions do you want a logo of? Separate values with commas. For ranges, use a hyphen',
+            '400-410'
+        )
+        rel_pos_list = position_extract(logo_pos_str)
+        position_list = [x[1] for x in human_seq_map[relative_position] if x[0] in rel_pos_list]
+
+
+
+    st.write(protein_logo(position_list))
+else:
+    cons_pat_str = 'Conservation pattern: '
+    grouping_in = [ABCG1_group, ABCG2_group, ABCG4_group, ABCG5_group, ABCG8_group]
+    grouping_set = set(grouping_in)
+    grouping_tup = [
+        ('ABCG1', ABCG1_group),
+        ('ABCG2', ABCG2_group),
+        ('ABCG4', ABCG4_group),
+        ('ABCG5', ABCG5_group),
+        ('ABCG8', ABCG8_group)
+    ]
+    query_list = []
+    for group in grouping_set:
+        cons_pat_str = cons_pat_str + '('
+        group_members = [x[0] for x in grouping_tup if x[1] == group]
+        for member in group_members:
+            cons_pat_str = cons_pat_str + member + ', '
+        cons_pat_str = cons_pat_str + ')'
+        query_list.append(group_members)
+    
+    if len(grouping_set) == 1:
+        query_pos = [x[0] for x in alignment_protein_conservation if x[1] == 'Totally Conserved']
+    else:
+        query_results = functionally_divergent[:]
+        for query in query_list:
+            query_results = conserved_search(query_results, query)
+        query_pos = [x[0] for x in query_results]
+    query_seq_df = seq_map_df.loc[seq_map_df.Alignment.isin(query_pos)]
+
+    st.write(cons_pat_str)
+    st.write(query_seq_df.set_index('Alignment'))
