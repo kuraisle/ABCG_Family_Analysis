@@ -1,6 +1,4 @@
 # ABCG_Family_Analysis
- code for "Functional Divergence in Mammalian ABCGs"
- **ADD DOI WHEN PUBLISHED**
- All the functions used to compute conservation patterns are in conservation_functions.py, and all the functions for producing sequence logos are in logo_functions.py.
+ code for "Analysis of Sequence Divergence in Mammalian ABCGs Predicts a Structural Network of Residues That Underlies Functional Divergence" (Mitchell-White et al. 2021, DOI:10.3390/ijms22063012). All the functions used to compute conservation patterns are in conservation_functions.py, and all the functions for producing sequence logos are in logo_functions.py.
 
- The sequence alignment used is in Local Files. There's a notebook with examples, I might add some interactivity later if I feel like a weekend project.
+ The sequence alignment used is "20200806 MAFFT ABCG small low gap.fasta". An example can be fount in the "ABCG family analysis.ipynb" notebook, or an interactive version using Streamlit at abcg-family.herokuapp.com
